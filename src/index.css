@@ -1,8 +1,19 @@
 * {
   font-family: monospace;
+  word-break: break-all;
 }
 
-.constant-pool, .attributes, .attribute-code, .fields-and-methods {
+body {
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  font-variant: tabular-nums;
+  line-height: 1.5;
+  padding-bottom: 1000px;
+}
+
+
+ul {
   list-style: none;
   margin: 0 0 0 20px;
   padding: 0;
@@ -10,7 +21,6 @@
 .constant-item {
   display: flex;
   flex-direction: row;
-  margin: 5px 0;
 }
 .constant-anchor {
   margin: 0 5px;
@@ -25,37 +35,44 @@
   min-width: 200px;
 }
 
-.constant-index {
-  min-width: 50px;
-}
-
-.fields-and-methods {
-
-}
-
-.bytecode {
+.bytecode, .switch {
   display: flex;
   flex-direction: row;
-  margin: 5px 0;
 }
-.bytecode-offset {
-  min-width: 30px;
+.bytecode-offset, .constant-index {
+  width: 40px;
+  margin-right: 10px;
+}
+.switch-tag {
+  min-width: 70px;
   text-align: right;
   margin-right: 10px;
 }
-.opcode-name {
-  min-width: 110px;
-}
-.local-index, .operand-value {
-  margin: 0 5px;
-}
+/*.opcode-name {*/
+/*  min-width: 110px;*/
+/*}*/
+/*.local-index, .operand-value {*/
+/*  margin: 0 5px;*/
+/*}*/
 
 .constant-desc {
   color: gray;
 }
 
-.bytecode-tableswitch {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
+.gray {
+  color: gray;
 }
+
+a {
+  color: #1890ff;
+  text-decoration: none;
+  background-color: transparent;
+  outline: none;
+  cursor: pointer;
+}
+
+/*.bytecode-tableswitch {*/
+/*  display: flex;*/
+/*  flex-direction: column;*/
+/*  justify-content: flex-end;*/
+/*}*/

@@ -18,7 +18,7 @@ const App = () => {
           setData(new Parser(u).getData())
         }
       }} />
-      {data ? <ClassFileView data={data}/> : null}
+      {data ? <ClassFileView data={data} /> : null}
     </div>
   )
 }

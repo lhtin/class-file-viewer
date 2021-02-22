@@ -1,6 +1,7 @@
 import {CONSTANT_TAG} from './constants'
 import {OPERAND_TYPES} from './bytecodes'
 import {UItem} from "./typing";
+import {useState} from "react";
 
 const ConstantAnchor = ({info, showDesc}: { info: UItem, showDesc?: boolean }) => {
   const anchor = '#constant_pool_index_' + info.value
@@ -11,6 +12,15 @@ const ConstantAnchor = ({info, showDesc}: { info: UItem, showDesc?: boolean }) =
       title={info.name}
     >#{info.value}</a>
     {showDesc ? <ConstantDesc desc={info.name || ''}/> : null}
+  </>
+}
+const OffsetAnchor = ({offset}: {offset: number}) => {
+  const anchor = '#offset-' + offset
+  return <>
+    <a
+      className={'constant-anchor'}
+      href={anchor}
+    >@{offset}</a>
   </>
 }
 
@@ -54,7 +64,7 @@ const ConstantView = ({item, index}: {item: any, index: number}) => {
       return <Constant>
         <ConstantIndex index={index}/>
         <ConstantName tag={item.tag}/>
-        <ConstantAnchorList infoList={[item.class_index, item.name_and_type_index]}/>
+        <ConstantAnchorList infoList={[item.class_index, item.name_and_type_index]} />
         <ConstantDesc desc={item.class_index.name + '.' + item.name_and_type_index.name}/>
       </Constant>
     case CONSTANT_TAG.CONSTANT_NameAndType:
@@ -111,32 +121,41 @@ const ConstantView = ({item, index}: {item: any, index: number}) => {
 }
 
 const FieldAndMethod = ({item}: {item: any}) => {
-  return <li className={'field-and-method'}>
-    <p>{item.access_flags.name} {item.name_index.name}: {item.descriptor_index.name}</p>
+  return <>
+    <div>{item.access_flags.name} {item.name_index.name}: {item.descriptor_index.name}</div>
     {item.attributes_count.value > 0
       ? <AttributesView attributes={item.attributes}/>
       : null}
-    <p></p>
-  </li>
+  </>
 }
 
 const FieldsAndMethods = ({list}: {list: any}) => {
   return <ul className={'fields-and-methods'}>
     {list.map((item: any, index: number) => (
-      <FieldAndMethod key={index} item={item}/>
+      <li className={'field-and-method'} key={index}><FieldAndMethod item={item}/></li>
     ))}
   </ul>
 }
 
+const Switch = ({tag, value} : {tag: string | number, value: number}) => {
+  return <div className={'switch'}>
+    <div className={'switch-tag'}>{tag}:</div>
+    <div><OffsetAnchor offset={value} /></div>
+  </div>
+}
 const Tableswitch = ({inst}: {inst: any}) => {
   const opcode = inst[0]
   const defaultOffset = inst[1]
   const low = inst[2]
   const high = inst[3]
   return <div className={'bytecode-tableswitch'}>
-    <div className={'opcode-name'}>{`${opcode.name} { // ${low.value} - ${high.value}`}</div>
-    {inst.slice(4).map((item: any, index: number) => <div key={index}>{low.value + index}: {item.value}</div>)}
-    <div>default: {defaultOffset.value}</div>
+    <div className={'opcode-name'}>{`${opcode.name} { `} <span className={'gray'}>// {low.value} - {high.value}</span></div>
+    <ul>
+      {inst.slice(4).map((item: any, index: number) => (
+        <li key={index}><Switch tag={low.value + index} value={item.value} /></li>
+      ))}
+      <li><Switch tag={'default'} value={defaultOffset.value} /></li>
+    </ul>
     <div>{'}'}</div>
   </div>
 }
@@ -148,12 +167,14 @@ const Lookupswitch = ({inst}: {inst: any}) => {
   const list = []
   for (let i = 1; i <= npars.value; i += 1) {
     const item = inst[i + 2]
-    list.push(<div key={i}>{item[0].value}: {item[1].value}</div>)
+    list.push(<li key={i}><Switch tag={item[0].value} value={item[1].value} /></li>)
   }
   return <div className={'bytecode-lockupswitch'}>
-    <div className={'opcode-name'}>{`${opcode.name} { // ${npars.value}`}</div>
-    {list}
-    <div>default: {defaultOffset.value}</div>
+    <div className={'opcode-name'}>{`${opcode.name} { `} <span className={'gray'}>// {npars.value}</span></div>
+    <ul>
+      {list}
+      <li><Switch tag={'default'} value={defaultOffset.value} /></li>
+    </ul>
     <div>{'}'}</div>
   </div>
 }
@@ -161,9 +182,9 @@ const Lookupswitch = ({inst}: {inst: any}) => {
 const Bytecode = ({inst, baseOffset}: {inst: any, baseOffset: number}) => {
   const opcode = inst[0]
   const at = opcode.offset - baseOffset
-  return <div className={'bytecode'}>
-    <div id={'offset-' + at} className={'bytecode-offset'}>{at}</div>
-    <div className={'bytecode-content'}>
+  return <>
+    <span id={'offset-' + at} className={'bytecode-offset'}>@{at}</span>
+    <span className={'bytecode-content'}>
       {opcode.name === 'tableswitch' ?
         <Tableswitch inst={inst}/> :
         opcode.name === 'lookupswitch' ?
@@ -180,25 +201,25 @@ const Bytecode = ({inst, baseOffset}: {inst: any, baseOffset: number}) => {
                   return <span key={index} className={'local-index'}>${operand.value}</span>
                 case OPERAND_TYPES.branch_offset2:
                 case OPERAND_TYPES.branch_offset4:
-                  return <a key={index} href={'#offset-' + operand.value} className={'goto-offset'}>@{operand.value}</a>
+                  return <OffsetAnchor key={index} offset={operand.value} />
                 default:
                   return <span key={index} className={'operand-value'}>{operand.value}</span>
               }
             })}
           </>}
-    </div>
-  </div>
+    </span>
+  </>
 }
 
 const Attribute = ({item}: {item: any}) => {
   if (item.attribute_name_index.name === 'Code') {
     const baseOffset = item.code_length.offset + item.code_length.bytes
     return <>
-      <p>{item.attribute_name_index.name}:</p>
+      <div>{item.attribute_name_index.name}:</div>
       <ul className={'attribute-code'}>
-        <li>max_stack={item.max_stack.value}, locals={item.max_locals.value}, args=</li>
+        <li>max_stack={item.max_stack.value}, locals={item.max_locals.value}</li>
         {item.code.map((item: any, index: number) => (
-          <li key={index}>
+          <li className={'bytecode'} key={index}>
             <Bytecode inst={item} baseOffset={baseOffset}/>
           </li>
         ))}
@@ -219,36 +240,59 @@ const AttributesView = ({attributes}: {attributes: any}) => {
   </ul>
 }
 
+const Toggle = ({children}: {children: any}) => {
+  const [show, setShow] = useState<boolean>(true)
+  return <>
+    {/*<button onClick={() => setShow(!show)}>{show ? '-' : '+'}</button>*/}
+    {show ? children : null}
+  </>
+}
+
 export const ClassFileView = ({data}: {data: any}) => {
   return (
-    <div>
-      <p>{data.magic.value} {data.version.major.value}.{data.version.minor.value}</p>
-      <p>{data.access_flags.name} {data.this_class.name} {data.super_class.name ?
-        <span>extends {data.super_class.name}</span> : null}</p>
-      <p>
+    <ul>
+      <li>version: {data.version.major.value}.{data.version.minor.value}</li>
+      <li>access_flags: (0x{data.access_flags.value.toString(16)}) {data.access_flags.name}</li>
+      <li>this_class: <ConstantAnchor info={data.this_class} showDesc /></li>
+      {data.super_class.value > 0 ? <li>super_class: <ConstantAnchor info={data.super_class} showDesc /></li> : null}
+      <li>
         interfaces({data.interfaces_count.value}):
-        {data.interfaces.map((item: any, index: number) => (
-          <ConstantAnchor key={index} info={item}/>
-        ))}
-      </p>
+        <ul>
+          {data.interfaces.map((item: any, index: number) => (
+            <li><ConstantAnchor key={index} info={item} showDesc /></li>
+          ))}
+        </ul>
+      </li>
 
 
-      <p>constant_pool({data.constant_pool_count.value - 1}):</p>
-      <ol className={'constant-pool'}>
-        {data.constant_pool.filter((item: any) => item).map((item: any, index: number) => (
-          <li key={index}><ConstantView item={item} index={index}/></li>
-        ))}
-      </ol>
+      <li>
+        constant_pool({data.constant_pool_count.value - 1}):
+        <Toggle>
+          <ul className={'constant-pool'}>
+            {data.constant_pool.filter((item: any) => item).map((item: any, index: number) => (
+              <li key={index}><ConstantView item={item} index={index}/></li>
+            ))}
+          </ul>
+        </Toggle>
+      </li>
 
-      <p>fields({data.fields_count.value}):</p>
-      <FieldsAndMethods list={data.fields}/>
+      <li>
+        fields({data.fields_count.value}):
+        <Toggle><FieldsAndMethods list={data.fields}/></Toggle>
+      </li>
 
-      <p>methods({data.methods_count.value}):</p>
-      <FieldsAndMethods list={data.methods}/>
 
-      <p>attributes({data.attributes_count.value}):</p>
-      <AttributesView attributes={data.attributes}/>
-    </div>
+      <li>
+        methods({data.methods_count.value}):
+        <Toggle><FieldsAndMethods list={data.methods}/></Toggle>
+      </li>
+
+
+      <li>
+        attributes({data.attributes_count.value}):
+        <Toggle><AttributesView attributes={data.attributes}/></Toggle>
+      </li>
+    </ul>
   )
 }
 

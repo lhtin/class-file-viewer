@@ -1,4 +1,4 @@
-public final class Test implements a {
+public final class Test implements a, b {
     static int a = 23;
     Object d = null;
     static {
@@ -36,8 +36,11 @@ public final class Test implements a {
     }
 }
 
-interface b extends a {}
+interface b extends a, c {}
 interface a {
+
+}
+interface c {
 
 }
 
