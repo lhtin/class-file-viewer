@@ -58,7 +58,7 @@ const App = () => {
       {data
         ? <>
           <ClassFileView data={data} />
-          <a href={'https://github.com/lhtin/class-file-viewer'}>GitHub</a>
+          <a className={'link'} href={'https://github.com/lhtin/class-file-viewer'}>GitHub</a>
         </>
         : null}
 
