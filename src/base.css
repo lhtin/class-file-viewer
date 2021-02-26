@@ -21,7 +21,7 @@
     border-radius: 5px;
     cursor: pointer;
     font-size: 14px;
-    padding: 5px;
+    padding: 5px 10px;
     background-color: aliceblue;
 }
 .button:hover {

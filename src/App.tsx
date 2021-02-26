@@ -10,22 +10,17 @@ const getUint8Array = async (file: File) => {
 const Panel = ({onParse}: {onParse: (file: File) => void}) => {
   const [name, setName] = useState<string>(localStorage.getItem('class-file-name') || '')
   const inputEl = useRef<HTMLInputElement | null>(null);
-  const onClick = useCallback(() => {
-    const file = inputEl?.current?.files?.[0]
-    if (file) {
-      localStorage.setItem('class-file-name', file.name)
-      onParse(file)
-    }
-  }, [inputEl, onParse])
   const onChange = useCallback((e) => {
     const file = inputEl?.current?.files?.[0]
     if (file) {
       setName(file.name)
+      localStorage.setItem('class-file-name', file.name)
+      onParse(file)
     }
-  }, [inputEl])
+  }, [inputEl, onParse])
   return <>
     <div className={'panel flex-row flex-align-center'}>
-      <label htmlFor={'file-select'} className={'button'}>选择文件</label>
+      <label htmlFor={'file-select'} className={'button'}>select class file to view</label>
       <input
         id={'file-select'}
         ref={inputEl}
@@ -33,7 +28,6 @@ const Panel = ({onParse}: {onParse: (file: File) => void}) => {
         accept={'.class'}
         onChange={onChange}
       />
-      <div className={'button'} onClick={onClick}>开始解析</div>
     </div>
     {name ? <div>{name}</div> : null}
   </>
@@ -61,8 +55,13 @@ const App = () => {
   return (
     <div className={'flex-column flex-align-center app'}>
       <Panel onParse={onParse} />
-      {data ? <ClassFileView data={data} /> : null}
-      <a href={'https://github.com/lhtin/class-file-viewer'}>GitHub</a>
+      {data
+        ? <>
+          <ClassFileView data={data} />
+          <a href={'https://github.com/lhtin/class-file-viewer'}>GitHub</a>
+        </>
+        : null}
+
     </div>
   )
 }
