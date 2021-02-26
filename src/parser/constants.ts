@@ -4,6 +4,23 @@ const CLASS_ACCESS_FLAGS = {
     name: 'ACC_PUBLIC',
     desc: 'Declared public; may be accessed from outside its package.',
   },
+  /* for InnerClasses */
+  ACC_PRIVATE: {
+    value: 0x0002,
+    name: 'ACC_PRIVATE',
+    desc: 'Marked private in source.'
+  },
+  ACC_PROTECTED: {
+    value: 0x004,
+    name: 'ACC_PROTECTED',
+    desc: 'Marked protected in source.'
+  },
+  ACC_STATIC: {
+    value: 0x008,
+    name: 'ACC_STATIC',
+    desc: 'Marked or implicitly static in source.',
+  },
+  /* end */
   ACC_FINAL: {
     value: 0x0010,
     name: 'ACC_FINAL',

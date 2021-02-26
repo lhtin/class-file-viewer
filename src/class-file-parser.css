@@ -1,0 +1,41 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+}
+#root {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+}
+
+.app {
+    padding: 10px 0;
+}
+
+.class-file-box {
+    flex: 1;
+    overflow: hidden auto;
+    max-width: 888px;
+    border: 1px solid gray;
+    padding: 5px;
+}
+
+.panel {
+    padding-bottom: 10px;
+}
+
+.constant-item {
+    padding: 0 5px;
+}
+
+#file-select {
+    display: none;
+}
+
+.panel > .button {
+    margin: 0 5px;
+}

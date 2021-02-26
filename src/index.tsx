@@ -1,6 +1,8 @@
 import { StrictMode } from 'react';
 import ReactDOM from 'react-dom';
+import './base.css';
 import './index.css';
+import './class-file-parser.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 

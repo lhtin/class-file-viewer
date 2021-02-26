@@ -27,7 +27,79 @@ class Parser {
       .join(' ')
   }
 
-  getName (index: number) : string {
+  parseFieldType (desc: string, at: number): {nextAt: number, type: string} {
+    const BaseType: Record<string, string> = {
+      B: 'byte',
+      C: 'char',
+      D: 'double',
+      F: 'float',
+      I: 'int',
+      J: 'long',
+      Z: 'boolean',
+      V: 'void'
+    }
+    let baseType = BaseType[desc[at]]
+    if (baseType) {
+      return {
+        nextAt: at + 1,
+        type: baseType,
+      }
+    } else if (desc[at] === 'L') {
+      at += 1
+      let res = ''
+      while (desc[at] !== ';') {
+        res += desc[at]
+        at += 1;
+      }
+      return {
+        nextAt: at + 1,
+        type: res,
+      }
+    } else if (desc[at] === '[') {
+      const typeData = this.parseFieldType(desc, at + 1)
+      return {
+        nextAt: typeData.nextAt,
+        type: typeData.type + '[]'
+      }
+    } else {
+      throw new Error('unknown field type: ' + desc)
+    }
+  }
+  parseDescriptor (desc: string) {
+    let at = 0
+    if (desc[at] === '(') {
+      at += 1
+      let paramsRes = ''
+      while (desc[at] !== ')') {
+        const {
+          nextAt,
+          type,
+        } = this.parseFieldType(desc, at);
+        if (paramsRes) {
+          paramsRes += ', '
+        }
+        paramsRes += type
+        at = nextAt
+      }
+      at += 1;
+      const {
+        type: returnType
+      } = this.parseFieldType(desc, at)
+      return {
+        paramsType: `(${paramsRes})`,
+        type: returnType,
+      }
+    } else {
+      const {
+        type: fieldType
+      } = this.parseFieldType(desc, at)
+      return {
+        type: fieldType,
+        paramsType: ''
+      }
+    }
+  }
+  getName (index: number, className: string = '') : string {
     if (!this.constant_pool) {
       return 'pending'
     }
@@ -41,13 +113,21 @@ class Parser {
       case CONSTANT_TAG.CONSTANT_Package:
         return this.getName(item.name_index.value)
       case CONSTANT_TAG.CONSTANT_Fieldref:
+        return this.getName(item.name_and_type_index.value, this.getName(item.class_index.value))
       case CONSTANT_TAG.CONSTANT_Methodref:
       case CONSTANT_TAG.CONSTANT_InterfaceMethodref:
-        return this.getName(item.class_index.value) + '.' +
-          this.getName(item.name_and_type_index.value)
+        return this.getName(item.name_and_type_index.value, this.getName(item.class_index.value))
       case CONSTANT_TAG.CONSTANT_NameAndType:
-        return this.getName(item.name_index.value) + ':' +
-          this.getName(item.descriptor_index.value)
+        const desc =  this.getName(item.descriptor_index.value)
+        const descInfo = this.parseDescriptor(desc)
+        if (className) {
+          className += '.'
+        }
+        if (descInfo.paramsType) {
+          return `${descInfo.type} ${className}${this.getName(item.name_index.value)}${descInfo.paramsType}`
+        } else {
+          return `${descInfo.type} ${className}${this.getName(item.name_index.value)}`
+        }
       case CONSTANT_TAG.CONSTANT_String:
         return this.getName(item.string_index.value)
       case CONSTANT_TAG.CONSTANT_Integer:
@@ -58,7 +138,7 @@ class Parser {
       case CONSTANT_TAG.CONSTANT_Utf8:
         return item.bytes.name
       case CONSTANT_TAG.CONSTANT_MethodHandle:
-        return item.reference_kind + ' ' +
+        return item.reference_kind.name + ' ' +
           this.getName(item.reference_index.value)
       case CONSTANT_TAG.CONSTANT_MethodType:
         return this.getName(item.descriptor_index.value)
@@ -183,9 +263,10 @@ class Parser {
     return data
   }
 
-  parseConstantPool (count: number) {
+  parseConstantPool () {
+    const constant_pool_count = this.reader.readU2()
     let result: Array<ConstantInfo | null> = [null]
-    for (let i = 1; i < count; i += 1) {
+    for (let i = 1; i < constant_pool_count.value; i += 1) {
       const constantInfo: ConstantInfo = {
         tag: this.parseTag(),
       }
@@ -241,7 +322,10 @@ class Parser {
       }
       result.push(constantInfo)
     }
-    return result
+    return {
+      constant_pool_count,
+      constant_pool: result,
+    }
   }
 
   resolveConstantIndex () {
@@ -266,14 +350,14 @@ class Parser {
 
   parseFlags (ACCESS_FLAGS: Record<string, FlagItem>) {
     const flags = this.reader.readU2()
-    flags.name = this.getAccessFlagsDesc(flags.value, ACCESS_FLAGS)
+    flags.name = this.getAccessFlagsDesc(flags.value, ACCESS_FLAGS).replace(/ACC_/g, '').toLowerCase()
     return flags
   }
 
   parseClass () {
     const data = this.reader.readU2()
     if (data.value === 0) {
-      data.name = 'java/lang/Object'
+      data.name = ''
     } else {
       data.name = this.getName(data.value)
     }
@@ -309,46 +393,102 @@ class Parser {
       attribute_name_index: this.parseIndex2(),
       attribute_length: this.reader.readU4(),
     }
-    if (attribute.attribute_name_index.name === 'Code') {
-      attribute = {
-        ...attribute,
-        ...this.parseCodeAttribute(),
-      }
-    } else {
-      attribute.info = {
-        offset: this.reader.getOffset(),
-        bytes: null,
-      }
-      this.reader.eat(attribute.attribute_length.value)
+    switch (attribute.attribute_name_index.name) {
+      case 'Code':
+        attribute = {
+          ...attribute,
+          ...this.parseCodeAttribute(),
+        }
+        break
+      case 'BootstrapMethods':
+        attribute = {
+          ...attribute,
+          ...this.parseBootstrapMethodsAttribute(),
+        }
+        break
+      case 'ConstantValue':
+        attribute = {
+          ...attribute,
+          constantvalue_index: this.parseIndex2(),
+        }
+        break
+      case 'SourceFile':
+        attribute = {
+          ...attribute,
+          sourcefile_index: this.parseIndex2(),
+        }
+        break
+      case 'InnerClasses':
+        attribute = {
+          ...attribute,
+          ...this.parseInnerClasses(),
+        }
+        break
+      default:
+        attribute.info = {
+          offset: this.reader.getOffset(),
+          bytes: null,
+        }
+        this.reader.eat(attribute.attribute_length.value)
+        break;
     }
     return attribute
   }
 
-  parseAttributes (count: number) {
+  parseAttributes () {
+    const attributes_count = this.reader.readU2()
     const attributes = []
-    for (let i = 0; i < count; i += 1) {
+    for (let i = 0; i < attributes_count.value; i += 1) {
       attributes.push(this.parseAttribute())
     }
-    return attributes
+    return {
+      attributes_count,
+      attributes,
+    }
   }
 
   parseFieldOrMethod (ACCESS_FLAGS: AccessFlags) {
-    const info: any = {
+    return {
       access_flags: this.parseFlags(ACCESS_FLAGS),
       name_index: this.parseIndex2(),
       descriptor_index: this.parseIndex2(),
-      attributes_count: this.parseCount(),
+      ...this.parseAttributes(),
     }
-    info.attributes = this.parseAttributes(info.attributes_count.value)
-    return info
   }
 
-  parseFieldsOrMethods (count: number, ACCESS_FLAGS: AccessFlags) {
+  parseFields () {
+    const fields_count = this.reader.readU2()
     const list = []
-    for (let i = 0; i < count; i += 1) {
-      list.push(this.parseFieldOrMethod(ACCESS_FLAGS))
+    for (let i = 0; i < fields_count.value; i += 1) {
+      list.push(this.parseFieldOrMethod(FIELD_ACCESS_FLAGS))
     }
-    return list
+    return {
+      fields_count,
+      fields: list,
+    }
+  }
+  parseMethods () {
+    const methods_count = this.reader.readU2()
+    const list = []
+    for (let i = 0; i < methods_count.value; i += 1) {
+      list.push(this.parseFieldOrMethod(METHOD_ACCESS_FLAGS))
+    }
+    return {
+      methods_count,
+      methods: list,
+    }
+  }
+
+  parseInterfaces () {
+    const interfaces_count = this.reader.readU2()
+    const interfaces = []
+    for (let i = 0; i < interfaces_count.value; i += 1) {
+      interfaces.push(this.parseClass())
+    }
+    return {
+      interfaces_count,
+      interfaces,
+    }
   }
 
   parseOpcode () {
@@ -400,101 +540,118 @@ class Parser {
         offset.value += opcodeOffset
         list.push([match, offset])
       }
+    } else if (bytecode.name === 'invokedynamic' || bytecode.name === 'invokeinterface') {
+      list.push(this.parseOperand(operands[0], opcodeOffset))
+      this.parseOperand(operands[1], opcodeOffset)
     } else if (operands) {
       for (let i = 0; i < operands.length; i += 1) {
         list.push(this.parseOperand(operands[i], opcodeOffset))
       }
     }
-    console.log('code', list)
     return list
   }
 
-  parseCode (len: number) {
+  parseCode () {
+    const code_length = this.reader.readU4()
     const codeOffset = this.reader.getOffset()
-    const maxOffset = codeOffset + len
+    const maxOffset = codeOffset + code_length.value
     const list = []
     while (this.reader.getOffset() < maxOffset) {
       list.push(this.parseInstruction(codeOffset))
     }
-    return list
+    return {
+      code_length,
+      code: list,
+    }
   }
 
   parseExceptionTable () {
-
+    const exception_table_length = this.reader.readU2()
+    const exception_table = []
+    for (let i = 0; i < exception_table_length.value; i += 1) {
+      exception_table.push({
+        start_pc: this.reader.readU2(),
+        end_pc: this.reader.readU2(),
+        handler_pc: this.reader.readU2(),
+        catch_type: this.parseClass()
+      })
+    }
+    return {
+      exception_table_length,
+      exception_table: exception_table,
+    }
   }
 
   parseCodeAttribute () {
-    let info: any = {
+    return {
       max_stack: this.reader.readU2(),
       max_locals: this.reader.readU2(),
-      code_length: this.reader.readU4(),
+      ...this.parseCode(),
+      ...this.parseExceptionTable(),
+      ...this.parseAttributes(),
     }
-    info = {
-      ...info,
-      code: this.parseCode(info.code_length.value),
-      exception_table_length: this.reader.readU2(),
-      exception_table: this.parseExceptionTable(),
-      attributes_count: this.reader.readU2(),
-    }
-    info.attributes = this.parseAttributes(info.attributes_count.value)
-    return info
   }
 
-  parseBootstrapMethodsAttribute () {}
+  parseBootstrapMethodsAttribute () {
+    const num_bootstrap_methods = this.reader.readU2()
+    const bootstrap_methods = []
+    for (let i = 0; i < num_bootstrap_methods.value; i += 1) {
+      const bootstrap_method_ref = this.parseIndex2()
+      const num_bootstrap_arguments = this.reader.readU2()
+      const bootstrap_arguments = []
+      for (let j = 0; j < num_bootstrap_arguments.value; j += 1) {
+        bootstrap_arguments.push(this.parseIndex2())
+      }
+      bootstrap_methods.push({
+        bootstrap_method_ref,
+        num_bootstrap_arguments,
+        bootstrap_arguments,
+      })
+    }
+    return {
+      num_bootstrap_methods,
+      bootstrap_methods,
+    }
+  }
 
-  parseStackMapTableAttribute () {}
-
-  parseSourceFileAttribute () {}
-
-  parseInnerClassesAttribute () {}
+  parseInnerClasses () {
+    const number_of_classes = this.reader.readU2()
+    const classes = []
+    for (let i = 0; i < number_of_classes.value; i += 1) {
+      classes.push({
+        inner_class_info_index: this.parseClass(),
+        outer_class_info_index: this.parseClass(),
+        inner_name_index: this.parseIndex2(),
+        inner_class_access_flags: this.parseFlags(CLASS_ACCESS_FLAGS),
+      })
+    }
+    return {
+      number_of_classes,
+      classes
+    }
+  }
 
   parse () {
     const magic = this.parseMagic()
     const version = this.parseVersion()
-    const constant_pool_count = this.parseCount()
-    this.constant_pool = this.parseConstantPool(constant_pool_count.value)
+    const constantPool = this.parseConstantPool()
+    this.constant_pool = constantPool.constant_pool
     this.resolveConstantIndex()
-    const access_flags = this.parseFlags(CLASS_ACCESS_FLAGS)
-    const this_class = this.parseClass()
-    const super_class = this.parseClass()
-    if ((access_flags.value & CLASS_ACCESS_FLAGS.ACC_INTERFACE.value) > 0) {
-      super_class.name = ''
+
+    const data = {
+      magic: magic,
+      version: version,
+      ...constantPool,
+      access_flags: this.parseFlags(CLASS_ACCESS_FLAGS),
+      this_class: this.parseClass(),
+      super_class: this.parseClass(),
+      ...this.parseInterfaces(),
+      ...this.parseFields(),
+      ...this.parseMethods(),
+      ...this.parseAttributes(),
     }
-
-    const interfaces_count = this.parseCount()
-    const interfaces = []
-    for (let i = 0; i < interfaces_count.value; i += 1) {
-      interfaces.push(this.parseClass())
-    }
-
-    const fields_count = this.parseCount()
-    const fields = this.parseFieldsOrMethods(fields_count.value,
-      FIELD_ACCESS_FLAGS)
-
-    const methods_count = this.parseCount()
-    const methods = this.parseFieldsOrMethods(methods_count.value,
-      METHOD_ACCESS_FLAGS)
-
-    const attributes_count = this.parseCount()
-    const attributes = this.parseAttributes(attributes_count.value)
-
-    return {
-      magic,
-      version,
-      constant_pool_count,
-      constant_pool: this.constant_pool,
-      access_flags,
-      this_class,
-      super_class,
-      interfaces_count,
-      interfaces,
-      fields_count,
-      fields,
-      methods_count,
-      methods,
-      attributes_count,
-      attributes,
-    }
+    console.log('parse data', data)
+    return data
   }
 }
 
