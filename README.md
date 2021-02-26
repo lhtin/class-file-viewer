@@ -1,4 +1,4 @@
-# Class File Viewer
+# Java Class File Viewer
 
 Screenshot:
 
