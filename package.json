@@ -18,7 +18,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "react-scripts build && rm -R ../lhtin/source/class-file-viewer/* && cp -R ./build/* ../lhtin/source/class-file-viewer/",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

@@ -21,7 +21,7 @@ const Panel = ({onParse}: {onParse: (file: File) => void}) => {
   }, [inputEl, onParse])
   return <>
     <div className={'panel flex-row flex-align-center'}>
-      <label htmlFor={'file-select'} className={'button'}>select class file to view</label>
+      <label htmlFor={'file-select'} className={'button'}>select a class file to view</label>
       <input
         id={'file-select'}
         ref={inputEl}
