@@ -443,7 +443,7 @@ class Parser {
     }
     const desc =  this.getName(data.descriptor_index.value)
     return {
-      name: this.parseDescriptor(desc, this.getName(data.name_index.value)),
+      name: `${data.access_flags.name} ${this.parseDescriptor(desc, this.getName(data.name_index.value))}`,
       ...data,
       ...this.parseAttributes(),
     }
