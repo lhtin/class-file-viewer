@@ -34,11 +34,13 @@ const Panel = ({onParse}: {onParse: (file: File) => void}) => {
 }
 
 const getCachedData = () => {
-  const cachedData = localStorage.getItem('class-file-data') || ''
+  const cachedData = localStorage.getItem('class-file-data')
   try {
-    const data = JSON.parse(cachedData)
-    console.log('use cached class file data')
-    return data
+    if (cachedData) {
+      console.log('use cached class file data')
+      const data = new Parser(Uint8Array.of(...cachedData.split(',').map((item) => Number(item)))).getData()
+      return data
+    }
   } catch (e) {
     return null
   }
@@ -48,8 +50,8 @@ const App = () => {
   const [data, setData] = useState<any>(getCachedData())
   const onParse = useCallback(async (file) => {
     const u = await getUint8Array(file)
+    localStorage.setItem('class-file-data', u.toString())
     const data = new Parser(u).getData()
-    localStorage.setItem('class-file-data', JSON.stringify(data))
     setData(data);
   }, [setData])
   return (

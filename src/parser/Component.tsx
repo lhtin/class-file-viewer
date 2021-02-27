@@ -145,7 +145,7 @@ const ConstantView = ({item, index}: { item: any, index: number }) => {
         <ConstantAnchorList infoList={[item.name_and_type_index]}>
           <BootstrapMethodAnchor index={item.bootstrap_method_attr_index.value}/>
         </ConstantAnchorList>
-        <ConstantDesc desc={`bootstrap_${item.bootstrap_method_attr_index.value}: ${item.name_and_type_index.name}`}/>
+        <ConstantDesc desc={item.name}/>
       </Constant>
     case CONSTANT_TAG.CONSTANT_Utf8:
     case CONSTANT_TAG.CONSTANT_Integer:
@@ -164,7 +164,7 @@ const ConstantView = ({item, index}: { item: any, index: number }) => {
 
 const FieldAndMethod = ({item}: { item: any }) => {
   return <>
-    <div>{item.access_flags.name} {item.name_index.name}: {item.descriptor_index.name}</div>
+    <div>{item.name}</div>
     {item.attributes_count.value > 0
       ? <AttributesView attributes={item.attributes}/>
       : null}
@@ -337,48 +337,44 @@ const Toggle = ({children}: { children: any }) => {
 
 export const ClassFileView = ({data}: { data: any }) => {
   return <div className={'class-file-box'}>
-      <div>version: {data.version.major.value}.{data.version.minor.value}</div>
-      <div>access_flags: (0x{data.access_flags.value.toString(16)}) {data.access_flags.name}</div>
-      <div className={'flex-row'}>this_class:&nbsp;<ConstantAnchor info={data.this_class} showDesc/></div>
-      {data.super_class.value > 0 ?
-        <div className={'flex-row'}>super_class:&nbsp;<ConstantAnchor info={data.super_class} showDesc/></div> : null}
-      <div>
-        interfaces({data.interfaces_count.value}):
-        <ul>
-          {data.interfaces.map((item: any, index: number) => (
-            <li key={index}><ConstantAnchor info={item} showDesc/></li>
-          ))}
-        </ul>
-      </div>
+    <div>version: {data.version.major.value}.{data.version.minor.value}</div>
+    <div>access_flags: (0x{data.access_flags.value.toString(16)}) {data.access_flags.name}</div>
+    <div className={'flex-row'}>this_class:&nbsp;<ConstantAnchor info={data.this_class} showDesc/></div>
+    {data.super_class.value > 0 ?
+      <div className={'flex-row'}>super_class:&nbsp;<ConstantAnchor info={data.super_class} showDesc/></div> : null}
+    <div>
+      <div className={'strong'}>interfaces({data.interfaces_count.value}):</div>
+      <ul>
+        {data.interfaces.map((item: any, index: number) => (
+          <li key={index}><ConstantAnchor info={item} showDesc/></li>
+        ))}
+      </ul>
+    </div>
+
+    <div>
+      <div className={'strong'}>fields({data.fields_count.value}):</div>
+      <FieldsAndMethods list={data.fields}/>
+    </div>
 
 
-      <div>
-        <div className={'strong'}>constant_pool({data.constant_pool_count.value - 1}):</div>
-        <Toggle>
-          <ul className={'constant-pool diver'}>
-            {data.constant_pool.filter((item: any) => item).map((item: any, index: number) => (
-              <li key={index}><ConstantView item={item} index={index}/></li>
-            ))}
-          </ul>
-        </Toggle>
-      </div>
+    <div>
+      <div className={'strong'}>methods({data.methods_count.value}):</div>
+      <FieldsAndMethods list={data.methods}/>
+    </div>
 
-      <div>
-        <div className={'strong'}>fields({data.fields_count.value}):</div>
-        <Toggle><FieldsAndMethods list={data.fields}/></Toggle>
-      </div>
+    <div>
+      <div className={'strong'}>constant_pool({data.constant_pool_count.value - 1}):</div>
+      <ul className={'constant-pool diver'}>
+        {data.constant_pool.filter((item: any) => item).map((item: any, index: number) => (
+          <li key={index}><ConstantView item={item} index={index}/></li>
+        ))}
+      </ul>
+    </div>
 
-
-      <div>
-        <div className={'strong'}>methods({data.methods_count.value}):</div>
-        <Toggle><FieldsAndMethods list={data.methods}/></Toggle>
-      </div>
-
-
-      <div>
-        attributes({data.attributes_count.value}):
-        <Toggle><AttributesView attributes={data.attributes}/></Toggle>
-      </div>
+    <div>
+      <div className={'strong'}>attributes({data.attributes_count.value}):</div>
+      <Toggle><AttributesView attributes={data.attributes}/></Toggle>
+    </div>
   </div>
 }
 

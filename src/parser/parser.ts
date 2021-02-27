@@ -22,7 +22,7 @@ class Parser {
 
   getAccessFlagsDesc (flags: number, flagMap: Record<number, FlagItem>) {
     return Object.values(flagMap)
-      .filter((item) => (item.value & flags) > 0)
+      .filter((item) => (item.value & flags) > 0 && item.name)
       .map((item) => item.name)
       .join(' ')
   }
@@ -65,7 +65,7 @@ class Parser {
       throw new Error('unknown field type: ' + desc)
     }
   }
-  parseDescriptor (desc: string) {
+  parseDescriptor (desc: string, name: string) {
     let at = 0
     if (desc[at] === '(') {
       at += 1
@@ -85,18 +85,12 @@ class Parser {
       const {
         type: returnType
       } = this.parseFieldType(desc, at)
-      return {
-        paramsType: `(${paramsRes})`,
-        type: returnType,
-      }
+      return `${returnType} ${name}(${paramsRes});`
     } else {
       const {
         type: fieldType
       } = this.parseFieldType(desc, at)
-      return {
-        type: fieldType,
-        paramsType: ''
-      }
+      return `${fieldType} ${name};`
     }
   }
   getName (index: number, className: string = '') : string {
@@ -118,16 +112,12 @@ class Parser {
       case CONSTANT_TAG.CONSTANT_InterfaceMethodref:
         return this.getName(item.name_and_type_index.value, this.getName(item.class_index.value))
       case CONSTANT_TAG.CONSTANT_NameAndType:
-        const desc =  this.getName(item.descriptor_index.value)
-        const descInfo = this.parseDescriptor(desc)
         if (className) {
           className += '.'
         }
-        if (descInfo.paramsType) {
-          return `${descInfo.type} ${className}${this.getName(item.name_index.value)}${descInfo.paramsType}`
-        } else {
-          return `${descInfo.type} ${className}${this.getName(item.name_index.value)}`
-        }
+        const name = `${className}${this.getName(item.name_index.value)}`
+        const desc =  this.getName(item.descriptor_index.value)
+        return this.parseDescriptor(desc, name)
       case CONSTANT_TAG.CONSTANT_String:
         return this.getName(item.string_index.value)
       case CONSTANT_TAG.CONSTANT_Integer:
@@ -141,12 +131,10 @@ class Parser {
         return item.reference_kind.name + ' ' +
           this.getName(item.reference_index.value)
       case CONSTANT_TAG.CONSTANT_MethodType:
-        return this.getName(item.descriptor_index.value)
+        return this.parseDescriptor(this.getName(item.descriptor_index.value), '')
       case CONSTANT_TAG.CONSTANT_Dynamic:
       case CONSTANT_TAG.CONSTANT_InvokeDynamic:
-        return 'bootstrap_method_attr_index: ' +
-          item.bootstrap_method_attr_index.value + ', ' +
-          this.getName(item.name_and_type_index.value)
+        return `bootstrap_${item.bootstrap_method_attr_index.value}: ${this.getName(item.name_and_type_index.value)}`
       default:
         return 'unknown tag'
     }
@@ -448,10 +436,15 @@ class Parser {
   }
 
   parseFieldOrMethod (ACCESS_FLAGS: AccessFlags) {
-    return {
+    const data = {
       access_flags: this.parseFlags(ACCESS_FLAGS),
       name_index: this.parseIndex2(),
       descriptor_index: this.parseIndex2(),
+    }
+    const desc =  this.getName(data.descriptor_index.value)
+    return {
+      name: this.parseDescriptor(desc, this.getName(data.name_index.value)),
+      ...data,
       ...this.parseAttributes(),
     }
   }
