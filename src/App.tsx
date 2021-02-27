@@ -1,6 +1,7 @@
 import {useCallback, useRef, useState} from 'react';
 import { ClassFileView } from './parser/Component'
 import {Parser} from "./parser/parser";
+import {HelloWorld} from "./parser/HelloWorld";
 
 const getUint8Array = async (file: File) => {
   const arrayBuffer = await file.arrayBuffer()
@@ -36,11 +37,16 @@ const Panel = ({onParse}: {onParse: (file: File) => void}) => {
 const getCachedData = () => {
   const cachedData = localStorage.getItem('class-file-data')
   try {
+    let u8: Uint8Array
     if (cachedData) {
-      console.log('use cached class file data')
-      const data = new Parser(Uint8Array.of(...cachedData.split(',').map((item) => Number(item)))).getData()
-      return data
+      console.log(`use cached class file data(${localStorage.getItem('class-file-name')}).`)
+      u8 = Uint8Array.of(...cachedData.split(',').map((item) => Number(item)));
+    } else {
+      console.log('use default class file(HelloWorld.class).')
+      u8 = HelloWorld.data
+      localStorage.setItem('class-file-name', HelloWorld.filename)
     }
+    return new Parser(u8).getData()
   } catch (e) {
     return null
   }

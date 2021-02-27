@@ -9,6 +9,7 @@ body {
 #root {
     height: 100%;
     width: 100%;
+    padding: 10px;
     position: absolute;
 }
 
@@ -19,8 +20,9 @@ body {
 
 .class-file-box {
     flex: 1;
-    overflow: hidden auto;
+    overflow: auto;
     max-width: 888px;
+    width: 100%;
     border: 1px solid gray;
     padding: 10px;
 }
@@ -39,4 +41,35 @@ body {
 
 .panel > .button {
     margin: 0 5px;
+}
+
+.constant-anchor {
+    padding: 0 5px 0 0;
+    display: flex;
+    flex-direction: row;
+}
+
+@media (min-width: 667px) {
+    .class-file-box {
+        overflow: hidden auto;
+    }
+
+    .constant-tag {
+        min-width: 200px;
+    }
+}
+@media (max-width: 666px) {
+    .constant-item {
+        flex-wrap: wrap;
+    }
+
+    .constant-tag {
+        margin-right: 10px;
+    }
+    .constant-desc {
+        min-width: 200px;
+    }
+    .bytecode {
+        flex-wrap: wrap;
+    }
 }

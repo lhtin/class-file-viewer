@@ -1,7 +1,7 @@
 import {CONSTANT_TAG} from './constants'
 import {OPERAND_TYPES} from './bytecodes'
 import {UItem} from "./typing";
-import {useState, MouseEvent, ReactElement} from "react";
+import {useState, MouseEvent, ReactElement, Fragment} from "react";
 
 let ele: Element | null = null
 const scrollIntoView = (event: MouseEvent<HTMLElement>) => {
@@ -17,7 +17,7 @@ const scrollIntoView = (event: MouseEvent<HTMLElement>) => {
   ele?.scrollIntoView({
     behavior: 'smooth',
     block: 'nearest',
-    inline: 'start'
+    inline: 'nearest'
   })
 }
 
@@ -238,7 +238,10 @@ const Bytecode = ({inst, baseOffset}: { inst: any, baseOffset: number }) => {
             switch (operand.type) {
               case OPERAND_TYPES.constant_index1:
               case OPERAND_TYPES.constant_index2:
-                return <ConstantAnchor key={index} info={operand} showDesc/>
+                return <Fragment key={index}>
+                  <ConstantAnchor info={operand} />
+                  <ConstantDesc desc={operand.name} />
+                </Fragment>
               case OPERAND_TYPES.local_index1:
               case OPERAND_TYPES.local_index2:
                 return <span key={index} className={'local-index'}>${operand.value}</span>
