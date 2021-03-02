@@ -96,7 +96,7 @@ const ConstantView = ({item, index}: { item: any, index: number }) => {
         <ConstantIndex index={index}/>
         <ConstantName tag={item.tag}/>
         <ConstantAnchorList infoList={[item.name_index]}/>
-        <ConstantDesc desc={item.name_index.name}/>
+        <ConstantDesc desc={item.name}/>
       </Constant>
     case CONSTANT_TAG.CONSTANT_Fieldref:
     case CONSTANT_TAG.CONSTANT_Methodref:
@@ -164,7 +164,7 @@ const ConstantView = ({item, index}: { item: any, index: number }) => {
 
 const FieldAndMethod = ({item}: { item: any }) => {
   return <>
-    <div>{item.name}</div>
+    <div>{item.name};</div>
     {item.attributes_count.value > 0
       ? <AttributesView attributes={item.attributes}/>
       : null}

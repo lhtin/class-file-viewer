@@ -26,7 +26,9 @@ class Parser {
       .map((item) => item.name)
       .join(' ')
   }
-
+  parseClassType (className: string) {
+    return className.replace(/\//g, '.');
+  }
   parseFieldType (desc: string, at: number): {nextAt: number, type: string} {
     const BaseType: Record<string, string> = {
       B: 'byte',
@@ -53,7 +55,7 @@ class Parser {
       }
       return {
         nextAt: at + 1,
-        type: res,
+        type: this.parseClassType(res),
       }
     } else if (desc[at] === '[') {
       const typeData = this.parseFieldType(desc, at + 1)
@@ -85,12 +87,12 @@ class Parser {
       const {
         type: returnType
       } = this.parseFieldType(desc, at)
-      return `${returnType} ${name}(${paramsRes});`
+      return `${returnType} ${name}(${paramsRes})`
     } else {
       const {
         type: fieldType
       } = this.parseFieldType(desc, at)
-      return `${fieldType} ${name};`
+      return `${fieldType} ${name}`
     }
   }
   getName (index: number, className: string = '') : string {
@@ -103,6 +105,7 @@ class Parser {
     }
     switch (item.tag.value) {
       case CONSTANT_TAG.CONSTANT_Class:
+        return this.parseClassType(this.getName(item.name_index.value));
       case CONSTANT_TAG.CONSTANT_Module:
       case CONSTANT_TAG.CONSTANT_Package:
         return this.getName(item.name_index.value)
