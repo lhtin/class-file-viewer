@@ -82,6 +82,18 @@ ul {
   cursor: pointer;
 }
 
+.opcode-anchor {
+  color: rgba(0, 0, 0, 0.85);
+  text-decoration: none;
+  background-color: transparent;
+  outline: none;
+  cursor: pointer;
+}
+.opcode-anchor:hover {
+  color: #1890ff;
+  text-decoration: underline;
+}
+
 /*.bytecode-tableswitch {*/
 /*  display: flex;*/
 /*  flex-direction: column;*/

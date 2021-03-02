@@ -179,6 +179,24 @@ const FieldsAndMethods = ({list}: { list: any }) => {
   </ul>
 }
 
+const OpcodeAnchor = ({opcode}: {opcode: string}) => {
+  const tests = [
+    'aload_<n>', 'astore_<n>', 'dcmp<op>', 'dconst_<d>', 'dload_<n>', 'dstore_<n>', 'fcmp<op>', 'fconst_<f>',
+    'fload_<n>', 'fstore_<n>', 'iconst_<i>', 'if_acmp<cond>', 'if_icmp<cond>', 'if<cond>', 'iload_<n>',
+    'istore_<n>', 'lconst_<l>', 'lload_<n>', 'lstore_<n>'
+  ];
+  let newOpcode: string = opcode;
+  for (let item of tests) {
+    const regexpStr = item.replace(/<[^>]+>/, '[^_]+');
+    const regexp = new RegExp(regexpStr)
+    if (regexp.test(opcode)) {
+      newOpcode = item.replace(/[<>]/g, '')
+      break
+    }
+  }
+  return <a className={'opcode-anchor'} href={`https://docs.oracle.com/javase/specs/jvms/se15/html/jvms-6.html#jvms-6.5.${newOpcode}`}>{opcode}</a>
+}
+
 const Switch = ({tag, value}: { tag: string | number, value: number }) => {
   return <div className={'switch'}>
     <div className={'switch-tag'}>{tag}:</div>
@@ -191,7 +209,8 @@ const Tableswitch = ({inst}: { inst: any }) => {
   const low = inst[2]
   const high = inst[3]
   return <div className={'bytecode-tableswitch'}>
-    <div className={'opcode-name'}>{`${opcode.name} { `} <span className={'gray'}>// {low.value} - {high.value}</span>
+    <div className={'opcode-name'}>
+      <OpcodeAnchor opcode={opcode.name} />&nbsp;{'{'}&nbsp;<span className={'gray'}>// {low.value} - {high.value}</span>
     </div>
     <ul>
       {inst.slice(4).map((item: any, index: number) => (
@@ -213,7 +232,7 @@ const Lookupswitch = ({inst}: { inst: any }) => {
     list.push(<li key={i}><Switch tag={item[0].value} value={item[1].value}/></li>)
   }
   return <div className={'bytecode-lockupswitch'}>
-    <div className={'opcode-name'}>{`${opcode.name} { `} <span className={'gray'}>// {npars.value}</span></div>
+    <div className={'opcode-name'}><OpcodeAnchor opcode={opcode.name} />&nbsp;{'{'}&nbsp;<span className={'gray'}>// {npars.value}</span></div>
     <ul>
       {list}
       <li><Switch tag={'default'} value={defaultOffset.value}/></li>
@@ -233,7 +252,7 @@ const Bytecode = ({inst, baseOffset}: { inst: any, baseOffset: number }) => {
       opcode.name === 'lookupswitch' ?
         <Lookupswitch inst={inst}/> :
         <>
-          <div className={'opcode-name'}>{opcode.name}</div>
+          <div className={'opcode-name'}><OpcodeAnchor opcode={opcode.name} /></div>
           {inst.slice(1).map((operand: any, index: number) => {
             switch (operand.type) {
               case OPERAND_TYPES.constant_index1:
