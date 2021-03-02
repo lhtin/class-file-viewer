@@ -95,6 +95,9 @@ class Parser {
       return `${fieldType} ${name}`
     }
   }
+  getConstant (index: number): ConstantInfo {
+    return this.constant_pool[index]
+  }
   getName (index: number, className: string = '') : string {
     if (!this.constant_pool) {
       return 'pending'
@@ -156,7 +159,7 @@ class Parser {
   }
 
   parseOperand (operandType: string, opcodeOffset: number) {
-    let operand
+    let operand: UItem
     switch (operandType) {
       case OPERAND_TYPES.unsigned1:
         operand = this.reader.readU1()
@@ -177,10 +180,10 @@ class Parser {
         operand = this.reader.readS4()
         break
       case OPERAND_TYPES.constant_index1:
-        operand = this.parseIndex1()
+        operand = this.parseIndex1(true)
         break
       case OPERAND_TYPES.constant_index2:
-        operand = this.parseIndex2()
+        operand = this.parseIndex2(true)
         break
       case OPERAND_TYPES.local_index1:
         operand = this.parseLocal1()
@@ -355,15 +358,23 @@ class Parser {
     return data
   }
 
-  parseIndex2 () {
+  parseIndex2 (withTagName: boolean = false) {
     const data = this.reader.readU2()
-    data.name = this.getName(data.value)
+    if (withTagName) {
+      data.name = `${this.getConstant(data.value).tag.name}: ${this.getName(data.value)}`
+    } else {
+      data.name = this.getName(data.value)
+    }
     return data
   }
 
-  parseIndex1 () {
+  parseIndex1 (withTagName: boolean = false) {
     const data = this.reader.readU1()
-    data.name = this.getName(data.value)
+    if (withTagName) {
+      data.name = `${this.getConstant(data.value).tag.name}: ${this.getName(data.value)}`
+    } else {
+      data.name = this.getName(data.value)
+    }
     return data
   }
 

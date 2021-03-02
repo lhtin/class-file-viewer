@@ -241,37 +241,43 @@ const Lookupswitch = ({inst}: { inst: any }) => {
   </div>
 }
 
+const Bytecode1 = ({name, inst}: {name: string, inst: any}) => {
+  switch (name) {
+    case 'tableswitch':
+      return <Tableswitch inst={inst}/>
+    case 'lookupswitch':
+      return <Lookupswitch inst={inst}/>
+    default:
+      return <>
+        <div className={'opcode-name'}><OpcodeAnchor opcode={name} /></div>
+        {inst.slice(1).map((operand: any, index: number) => {
+          switch (operand.type) {
+            case OPERAND_TYPES.constant_index1:
+            case OPERAND_TYPES.constant_index2:
+              return <Fragment key={index}>
+                <ConstantAnchor info={operand} />
+                <ConstantDesc desc={operand.name} />
+              </Fragment>
+            case OPERAND_TYPES.local_index1:
+            case OPERAND_TYPES.local_index2:
+              return <span key={index} className={'local-index'}>${operand.value}</span>
+            case OPERAND_TYPES.branch_offset2:
+            case OPERAND_TYPES.branch_offset4:
+              return <OffsetAnchor key={index} offset={operand.value}/>
+            default:
+              return <div key={index} className={'operand-value'}>{operand.value}</div>
+          }
+        })}
+      </>
+  }
+}
+
 const Bytecode = ({inst, baseOffset}: { inst: any, baseOffset: number }) => {
   const opcode = inst[0]
   const at = opcode.offset - baseOffset
   return <div className={'bytecode'} id={'offset-' + at}>
     <div className={'bytecode-offset'}>{at}</div>
-
-    {opcode.name === 'tableswitch' ?
-      <Tableswitch inst={inst}/> :
-      opcode.name === 'lookupswitch' ?
-        <Lookupswitch inst={inst}/> :
-        <>
-          <div className={'opcode-name'}><OpcodeAnchor opcode={opcode.name} /></div>
-          {inst.slice(1).map((operand: any, index: number) => {
-            switch (operand.type) {
-              case OPERAND_TYPES.constant_index1:
-              case OPERAND_TYPES.constant_index2:
-                return <Fragment key={index}>
-                  <ConstantAnchor info={operand} />
-                  <ConstantDesc desc={operand.name} />
-                </Fragment>
-              case OPERAND_TYPES.local_index1:
-              case OPERAND_TYPES.local_index2:
-                return <span key={index} className={'local-index'}>${operand.value}</span>
-              case OPERAND_TYPES.branch_offset2:
-              case OPERAND_TYPES.branch_offset4:
-                return <OffsetAnchor key={index} offset={operand.value}/>
-              default:
-                return <div key={index} className={'operand-value'}>{operand.value}</div>
-            }
-          })}
-        </>}
+    <Bytecode1 name={opcode.name} inst={inst} />
   </div>
 }
 

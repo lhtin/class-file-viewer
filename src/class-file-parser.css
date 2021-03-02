@@ -55,7 +55,7 @@ body {
     }
 
     .constant-tag {
-        min-width: 200px;
+        min-width: 140px;
     }
 }
 @media (max-width: 666px) {
