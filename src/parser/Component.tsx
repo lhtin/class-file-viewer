@@ -53,7 +53,7 @@ const BootstrapMethodAnchor = ({index}: { index: number }) => {
       className={'constant-anchor anchor'}
       onClick={scrollIntoView}
       data-id={`bootstrap-method-${index}`}
-    >&{index}</div>
+    >{index}</div>
   </div>
 }
 
@@ -355,14 +355,6 @@ const AttributesView = ({attributes}: { attributes: any }) => {
   </ul>
 }
 
-const Toggle = ({children}: { children: any }) => {
-  const [show, setShow] = useState<boolean>(true)
-  return <>
-    {/*<button onClick={() => setShow(!show)}>{show ? '-' : '+'}</button>*/}
-    {show ? children : null}
-  </>
-}
-
 export const ClassFileView = ({data}: { data: any }) => {
   return <div className={'class-file-box'}>
     <div>version: {data.version.major.value}.{data.version.minor.value}</div>
@@ -401,7 +393,7 @@ export const ClassFileView = ({data}: { data: any }) => {
 
     <div>
       <div className={'strong'}>attributes({data.attributes_count.value}):</div>
-      <Toggle><AttributesView attributes={data.attributes}/></Toggle>
+      <AttributesView attributes={data.attributes}/>
     </div>
   </div>
 }
