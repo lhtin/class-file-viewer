@@ -1,150 +1,43 @@
 import { BYTE_CODES, OPERAND_TYPES } from './bytecodes'
 import {
   CLASS_ACCESS_FLAGS,
-  CONSTANT_KIND, CONSTANT_TAG,
+  CONSTANT_KIND,
   FIELD_ACCESS_FLAGS,
   METHOD_ACCESS_FLAGS,
   REFERENCE_KIND
 } from './constants'
 import { Uint8Reader } from './Uint8Reader'
 import {AccessFlags, ConstantInfo, FlagItem, UItem} from "./typing";
+import {Utils} from "./Utils";
+import { ConstantPoolParser } from "./ConstantPoolParser";
 
-class Parser {
+class ClassParser {
   private reader: Uint8Reader
   private constant_pool: any
-  constructor (uint8Array: Uint8Array) {
-    this.reader = new Uint8Reader(uint8Array)
+  constructor (reader: Uint8Reader) {
+    this.reader = reader
   }
 
   getData () {
     return this.parse()
   }
 
-  getAccessFlagsDesc (flags: number, flagMap: Record<number, FlagItem>) {
-    return Object.values(flagMap)
-      .filter((item) => (item.value & flags) > 0 && item.name)
-      .map((item) => item.name)
-      .join(' ')
-  }
-  parseClassType (className: string) {
-    return className.replace(/\//g, '.');
-  }
-  parseFieldType (desc: string, at: number): {nextAt: number, type: string} {
-    const BaseType: Record<string, string> = {
-      B: 'byte',
-      C: 'char',
-      D: 'double',
-      F: 'float',
-      I: 'int',
-      J: 'long',
-      Z: 'boolean',
-      V: 'void'
-    }
-    let baseType = BaseType[desc[at]]
-    if (baseType) {
-      return {
-        nextAt: at + 1,
-        type: baseType,
-      }
-    } else if (desc[at] === 'L') {
-      at += 1
-      let res = ''
-      while (desc[at] !== ';') {
-        res += desc[at]
-        at += 1;
-      }
-      return {
-        nextAt: at + 1,
-        type: this.parseClassType(res),
-      }
-    } else if (desc[at] === '[') {
-      const typeData = this.parseFieldType(desc, at + 1)
-      return {
-        nextAt: typeData.nextAt,
-        type: typeData.type + '[]'
-      }
-    } else {
-      throw new Error('unknown field type: ' + desc)
-    }
-  }
-  parseDescriptor (desc: string, name: string) {
-    let at = 0
-    if (desc[at] === '(') {
-      at += 1
-      let paramsRes = ''
-      while (desc[at] !== ')') {
-        const {
-          nextAt,
-          type,
-        } = this.parseFieldType(desc, at);
-        if (paramsRes) {
-          paramsRes += ', '
-        }
-        paramsRes += type
-        at = nextAt
-      }
-      at += 1;
-      const {
-        type: returnType
-      } = this.parseFieldType(desc, at)
-      return `${returnType} ${name}(${paramsRes})`
-    } else {
-      const {
-        type: fieldType
-      } = this.parseFieldType(desc, at)
-      return `${fieldType} ${name}`
-    }
-  }
   getConstant (index: number): ConstantInfo {
-    return this.constant_pool[index]
+    const result = this.constant_pool.find((item: any) => item.index === index)
+    if (!result) {
+      throw new Error('没有在constant_pool中找到')
+    }
+    return result
   }
-  getName (index: number, className: string = '') : string {
-    if (!this.constant_pool) {
-      return 'pending'
+
+  getName(index: number)  {
+    const name = this.getConstant(index).name
+    if (!name) {
+      throw new Error('constant 没有设置name属性')
     }
-    const item = this.constant_pool[index]
-    if (!item) {
-      throw new Error('constant_pool_index ' + index)
-    }
-    switch (item.tag.value) {
-      case CONSTANT_TAG.CONSTANT_Class:
-        return this.parseClassType(this.getName(item.name_index.value));
-      case CONSTANT_TAG.CONSTANT_Module:
-      case CONSTANT_TAG.CONSTANT_Package:
-        return this.getName(item.name_index.value)
-      case CONSTANT_TAG.CONSTANT_Fieldref:
-        return this.getName(item.name_and_type_index.value, this.getName(item.class_index.value))
-      case CONSTANT_TAG.CONSTANT_Methodref:
-      case CONSTANT_TAG.CONSTANT_InterfaceMethodref:
-        return this.getName(item.name_and_type_index.value, this.getName(item.class_index.value))
-      case CONSTANT_TAG.CONSTANT_NameAndType:
-        if (className) {
-          className += '.'
-        }
-        const name = `${className}${this.getName(item.name_index.value)}`
-        const desc =  this.getName(item.descriptor_index.value)
-        return this.parseDescriptor(desc, name)
-      case CONSTANT_TAG.CONSTANT_String:
-        return this.getName(item.string_index.value)
-      case CONSTANT_TAG.CONSTANT_Integer:
-      case CONSTANT_TAG.CONSTANT_Float:
-      case CONSTANT_TAG.CONSTANT_Long:
-      case CONSTANT_TAG.CONSTANT_Double:
-        return item.bytes.value
-      case CONSTANT_TAG.CONSTANT_Utf8:
-        return item.bytes.name
-      case CONSTANT_TAG.CONSTANT_MethodHandle:
-        return item.reference_kind.name + ' ' +
-          this.getName(item.reference_index.value)
-      case CONSTANT_TAG.CONSTANT_MethodType:
-        return this.parseDescriptor(this.getName(item.descriptor_index.value), '')
-      case CONSTANT_TAG.CONSTANT_Dynamic:
-      case CONSTANT_TAG.CONSTANT_InvokeDynamic:
-        return `bootstrap_${item.bootstrap_method_attr_index.value}: ${this.getName(item.name_and_type_index.value)}`
-      default:
-        return 'unknown tag'
-    }
+    return name
   }
+
 
   parseBranchOffset2 (offset: number) {
     const data = this.reader.readS2()
@@ -223,159 +116,11 @@ class Parser {
     }
   }
 
-  parseCount () {
-    return this.reader.readU2()
-  }
-
-  parseTag () {
-    const tag = this.reader.readU1()
-    // @ts-ignore
-    tag.name = CONSTANT_KIND[tag.value].name
-    return tag
-  }
-
-  parseInteger () {
-    return this.reader.readU4()
-  }
-
-  parseLong () {
-    return this.reader.readU8()
-  }
-
-  parseFloat () {
-    return this.reader.readU4()
-  }
-
-  parseDouble () {
-    return this.reader.readU8()
-  }
-
-  parseReferenceKind () {
-    const data = this.reader.readU1()
-    // @ts-ignore
-    data.name = REFERENCE_KIND[data.value].name
-    return data
-  }
-
-  parseConstantPool () {
-    const constant_pool_count = this.reader.readU2()
-    let result: Array<ConstantInfo | null> = [null]
-    for (let i = 1; i < constant_pool_count.value; i += 1) {
-      const constantInfo: ConstantInfo = {
-        tag: this.parseTag(),
-      }
-      switch (constantInfo.tag.value) {
-        case CONSTANT_TAG.CONSTANT_Class:
-        case CONSTANT_TAG.CONSTANT_Module:
-        case CONSTANT_TAG.CONSTANT_Package:
-          constantInfo.name_index = this.parseIndex2()
-          break
-        case CONSTANT_TAG.CONSTANT_Fieldref:
-        case CONSTANT_TAG.CONSTANT_Methodref:
-        case CONSTANT_TAG.CONSTANT_InterfaceMethodref:
-          constantInfo.class_index = this.parseClass()
-          constantInfo.name_and_type_index = this.parseIndex2()
-          break
-        case CONSTANT_TAG.CONSTANT_NameAndType:
-          constantInfo.name_index = this.parseIndex2()
-          constantInfo.descriptor_index = this.parseIndex2()
-          break
-        case CONSTANT_TAG.CONSTANT_String:
-          constantInfo.string_index = this.parseIndex2()
-          break
-        case CONSTANT_TAG.CONSTANT_MethodHandle:
-          constantInfo.reference_kind = this.parseReferenceKind()
-          constantInfo.reference_index = this.parseIndex2()
-          break
-        case CONSTANT_TAG.CONSTANT_MethodType:
-          constantInfo.descriptor_index = this.parseIndex2()
-          break
-        case CONSTANT_TAG.CONSTANT_Dynamic:
-        case CONSTANT_TAG.CONSTANT_InvokeDynamic:
-          constantInfo.bootstrap_method_attr_index = this.reader.readU2()
-          constantInfo.name_and_type_index = this.parseIndex2()
-          break
-        case CONSTANT_TAG.CONSTANT_Utf8:
-          constantInfo.length = this.parseCount()
-          constantInfo.bytes = this.reader.readUtf8(constantInfo.length.value)
-          break
-        case CONSTANT_TAG.CONSTANT_Integer:
-          constantInfo.bytes = this.parseInteger()
-          break
-        case CONSTANT_TAG.CONSTANT_Long:
-          constantInfo.bytes = this.parseLong()
-          break
-        case CONSTANT_TAG.CONSTANT_Float:
-          constantInfo.bytes = this.parseFloat()
-          break
-        case CONSTANT_TAG.CONSTANT_Double:
-          constantInfo.bytes = this.parseDouble()
-          break
-        default:
-          throw new Error('unknown constant tag')
-      }
-      result.push(constantInfo)
-    }
-    return {
-      constant_pool_count,
-      constant_pool: result,
-    }
-  }
-
-  resolveConstantIndex () {
-    for (let i = 1; i < this.constant_pool.length; i += 1) {
-      const item = this.constant_pool[i]
-      item.name = this.getName(i)
-      let keys = [
-        'name_index',
-        'class_index',
-        'name_and_type_index',
-        'descriptor_index',
-        'string_index',
-        'reference_index',
-      ]
-      keys.forEach((key) => {
-        if (item[key]) {
-          item[key].name = this.getName(item[key].value)
-        }
-      })
-    }
-  }
-
   parseFlags (ACCESS_FLAGS: Record<string, FlagItem>) {
     const flags = this.reader.readU2()
-    flags.name = this.getAccessFlagsDesc(flags.value, ACCESS_FLAGS).replace(/ACC_/g, '').toLowerCase()
+    flags.name = Utils.getAccessFlagsDesc(flags.value, ACCESS_FLAGS).replace(/ACC_/g, '').toLowerCase()
+    console.log(flags)
     return flags
-  }
-
-  parseClass () {
-    const data = this.reader.readU2()
-    if (data.value === 0) {
-      data.name = ''
-    } else {
-      data.name = this.getName(data.value)
-    }
-    return data
-  }
-
-  parseIndex2 (withTagName: boolean = false) {
-    const data = this.reader.readU2()
-    if (withTagName) {
-      data.name = `${this.getConstant(data.value).tag.name}: ${this.getName(data.value)}`
-    } else {
-      data.name = this.getName(data.value)
-    }
-    return data
-  }
-
-  parseIndex1 (withTagName: boolean = false) {
-    const data = this.reader.readU1()
-    if (withTagName) {
-      data.name = `${this.getConstant(data.value).tag.name}: ${this.getName(data.value)}`
-    } else {
-      data.name = this.getName(data.value)
-    }
-    return data
   }
 
   parseLocal1 () {
@@ -455,9 +200,10 @@ class Parser {
       name_index: this.parseIndex2(),
       descriptor_index: this.parseIndex2(),
     }
+    console.log(data)
     const desc =  this.getName(data.descriptor_index.value)
     return {
-      name: `${data.access_flags.name} ${this.parseDescriptor(desc, this.getName(data.name_index.value))}`,
+      name: `${data.access_flags.name} ${Utils.parseDescriptor(desc, this.getName(data.name_index.value))}`,
       ...data,
       ...this.parseAttributes(),
     }
@@ -469,10 +215,12 @@ class Parser {
     for (let i = 0; i < fields_count.value; i += 1) {
       list.push(this.parseFieldOrMethod(FIELD_ACCESS_FLAGS))
     }
-    return {
+    const data = {
       fields_count,
       fields: list,
     }
+    console.log('fields', data);
+    return data
   }
   parseMethods () {
     const methods_count = this.reader.readU2()
@@ -480,22 +228,26 @@ class Parser {
     for (let i = 0; i < methods_count.value; i += 1) {
       list.push(this.parseFieldOrMethod(METHOD_ACCESS_FLAGS))
     }
-    return {
+    const data = {
       methods_count,
       methods: list,
     }
+    console.log('methods', data)
+    return data
   }
 
   parseInterfaces () {
     const interfaces_count = this.reader.readU2()
     const interfaces = []
     for (let i = 0; i < interfaces_count.value; i += 1) {
-      interfaces.push(this.parseClass())
+      interfaces.push(this.parseIndex2())
     }
-    return {
+    const data = {
       interfaces_count,
       interfaces,
     }
+    console.log('interfaces', data)
+    return data
   }
 
   parseOpcode () {
@@ -580,7 +332,7 @@ class Parser {
         start_pc: this.reader.readU2(),
         end_pc: this.reader.readU2(),
         handler_pc: this.reader.readU2(),
-        catch_type: this.parseClass()
+        catch_type: this.parseIndex2()
       })
     }
     return {
@@ -626,8 +378,8 @@ class Parser {
     const classes = []
     for (let i = 0; i < number_of_classes.value; i += 1) {
       classes.push({
-        inner_class_info_index: this.parseClass(),
-        outer_class_info_index: this.parseClass(),
+        inner_class_info_index: this.parseIndex2(),
+        outer_class_info_index: this.parseIndex2(),
         inner_name_index: this.parseIndex2(),
         inner_class_access_flags: this.parseFlags(CLASS_ACCESS_FLAGS),
       })
@@ -638,20 +390,42 @@ class Parser {
     }
   }
 
+  parseIndex1 (withTag: boolean = false) {
+    const data = this.reader.readU1()
+    const constant = this.getConstant(data.value)
+    if (withTag) {
+      data.name = `${constant.tag.name}: ${constant.name}`
+    } else {
+      data.name = constant.name
+    }
+    return data
+  }
+  parseIndex2 (withTag: boolean = false) {
+    const data = this.reader.readU2()
+    const constant = this.getConstant(data.value)
+    if (withTag) {
+      data.name = `${constant.tag.name}: ${constant.name}`
+    } else {
+      data.name = constant.name
+    }
+    console.log('index2', data)
+    return data
+  }
+
   parse () {
     const magic = this.parseMagic()
     const version = this.parseVersion()
-    const constantPool = this.parseConstantPool()
+    const constantPoolParser = new ConstantPoolParser(this.reader)
+    const constantPool = constantPoolParser.parseConstantPool()
     this.constant_pool = constantPool.constant_pool
-    this.resolveConstantIndex()
 
     const data = {
       magic: magic,
       version: version,
       ...constantPool,
       access_flags: this.parseFlags(CLASS_ACCESS_FLAGS),
-      this_class: this.parseClass(),
-      super_class: this.parseClass(),
+      this_class: this.parseIndex2(),
+      super_class: this.parseIndex2(),
       ...this.parseInterfaces(),
       ...this.parseFields(),
       ...this.parseMethods(),
@@ -663,7 +437,7 @@ class Parser {
 }
 
 export {
-  Parser,
+  ClassParser,
   CONSTANT_KIND,
   REFERENCE_KIND,
 }

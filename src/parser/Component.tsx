@@ -87,7 +87,6 @@ const Constant = ({index, children}: { index: number, children: any }) => {
 }
 
 const ConstantView = ({item, index}: { item: any, index: number }) => {
-  index += 1;
   switch (item.tag.value) {
     case CONSTANT_TAG.CONSTANT_Class:
     case CONSTANT_TAG.CONSTANT_Module:
@@ -155,7 +154,7 @@ const ConstantView = ({item, index}: { item: any, index: number }) => {
       return <Constant index={index}>
         <ConstantIndex index={index}/>
         <ConstantName tag={item.tag}/>
-        <ConstantValue value={item.bytes.name || item.bytes.value}/>
+        <ConstantValue value={item.name}/>
       </Constant>
     default:
       throw new Error('unknown constant tag')
@@ -385,8 +384,8 @@ export const ClassFileView = ({data}: { data: any }) => {
     <div>
       <div className={'strong'}>constant_pool({data.constant_pool_count.value - 1}):</div>
       <ul className={'constant-pool diver'}>
-        {data.constant_pool.filter((item: any) => item).map((item: any, index: number) => (
-          <li key={index}><ConstantView item={item} index={index}/></li>
+        {data.constant_pool.map((item: any, index: number) => (
+          <li key={index}><ConstantView item={item} index={item.index}/></li>
         ))}
       </ul>
     </div>

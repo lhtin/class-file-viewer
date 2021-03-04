@@ -20,7 +20,7 @@
     "d": "npm run build && rm -R ../lhtin/source/class-file-viewer/* && cp -R ./build/* ../lhtin/source/class-file-viewer/ && cd ../lhtin && npm run d",
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test",
+    "test": "react-scripts test --verbose=true",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

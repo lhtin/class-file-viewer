@@ -1,7 +1,8 @@
 import {useCallback, useRef, useState} from 'react';
 import { ClassFileView } from './parser/Component'
-import {Parser} from "./parser/parser";
+import {ClassParser} from "./parser/ClassParser";
 import {HelloWorld} from "./parser/HelloWorld";
+import {Uint8Reader} from "./parser/Uint8Reader";
 
 const getUint8Array = async (file: File) => {
   const arrayBuffer = await file.arrayBuffer()
@@ -46,7 +47,7 @@ const getCachedData = () => {
       u8 = HelloWorld.data
       localStorage.setItem('class-file-name', HelloWorld.filename)
     }
-    return new Parser(u8).getData()
+    return new ClassParser(new Uint8Reader(u8)).getData()
   } catch (e) {
     return null
   }
@@ -57,7 +58,7 @@ const App = () => {
   const onParse = useCallback(async (file) => {
     const u = await getUint8Array(file)
     localStorage.setItem('class-file-data', u.toString())
-    const data = new Parser(u).getData()
+    const data = new ClassParser(new Uint8Reader(u)).getData()
     setData(data);
   }, [setData])
   return (

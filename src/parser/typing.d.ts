@@ -8,8 +8,18 @@ export interface UItem {
   name?: string;
   desc?: string;
 }
+export interface UItemBigInt {
+  offset: number;
+  bytes: number;
+  value: bigint;
+  type?: string;
+  name?: string;
+  desc?: string;
+}
 
 export interface ConstantInfo {
+  name?: string,
+  index: number,
   tag: UItem,
   name_index?: UItem,
   class_index?: UItem,
@@ -20,12 +30,15 @@ export interface ConstantInfo {
   reference_index?: UItem,
   bootstrap_method_attr_index?: UItem,
   length?: UItem,
-  bytes?: UItem,
+  bytes?: UItem | UItemBigInt,
 }
+
+
 
 export interface FlagItem {
   value: number,
-  name: string
+  name: string,
+  desc: string,
 }
 
 export type AccessFlags = Record<string, FlagItem>
