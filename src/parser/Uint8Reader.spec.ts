@@ -15,6 +15,7 @@ describe('Uint8Reader', () => {
     72, 101, 108, 108, 111, 87, 111, 114, 108, 100, /* "HelloWorld" for readUtf8, just ascii now */
     63, 157, 243, 182, /* for readF4 { 0  01111111 00111011111001110110110 } Float32 Epsilon: 1.192092896e-07F */
     63, 241, 251, 231, 108, 139, 67, 150, /* for readF8 */
+    61, 204, 204, 205, /* for readF4 00111101 11001100 11001100 11001101 */
   )
   const reader = new Uint8Reader(u);
   it('u1ToHex', () => {
@@ -134,5 +135,23 @@ describe('Uint8Reader', () => {
       value: 1.124,
     })
     expect(reader.getOffset()).toEqual(offset1 + 8)
+  })
+  it('readF4-2', () => {
+    const offset1 = reader.getOffset()
+    expect(reader.readF4()).toEqual({
+      offset: offset1,
+      bytes: 4,
+      value: 0.10000000149011612, /* 1.192092896e-7 */
+    })
+    expect(reader.getOffset()).toEqual(offset1 + 4)
+  })
+  it('end', () => {
+    let throwErr = false
+    try {
+      reader.u1()
+    } catch (e) {
+      throwErr = true
+    }
+    expect(throwErr).toEqual(true)
   })
 })
