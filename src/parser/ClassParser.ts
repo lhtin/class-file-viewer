@@ -420,6 +420,7 @@ class ClassParser {
     this.constant_pool = constantPool.constant_pool
 
     const data = {
+      u: this.reader.getU(),
       magic: magic,
       version: version,
       ...constantPool,

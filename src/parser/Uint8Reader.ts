@@ -9,6 +9,12 @@ export class Uint8Reader {
     this.offset = 0
     this.maxOffset = u.length - 1
   }
+  getOffset () {
+    return this.offset
+  }
+  getU() {
+    return this.u
+  }
   align (offset: number, alignSize: number) {
     const padding = offset % alignSize
     if (padding > 0) {
@@ -17,9 +23,6 @@ export class Uint8Reader {
         this.readU1()
       }
     }
-  }
-  getOffset () {
-    return this.offset
   }
   u1 () {
     let r = this.u[this.offset]
@@ -52,7 +55,7 @@ export class Uint8Reader {
     return {
       offset: this.offset,
       bytes: 8,
-      value: this.readU(8),
+      value: this.readU(8).toString(),
     }
   }
   readS1 () : UItem {
@@ -103,6 +106,41 @@ export class Uint8Reader {
       value: -1,
       name: r,
     }
+  }
+  readF4() {
+    const data: UItem = {
+      offset: this.getOffset(),
+      bytes: 4,
+      value: -1,
+    }
+    const buffer = new ArrayBuffer(4);
+    const dataView = new DataView(buffer)
+    dataView.setUint8(0, this.u1())
+    dataView.setUint8(1, this.u1())
+    dataView.setUint8(2, this.u1())
+    dataView.setUint8(3, this.u1())
+    data.value = dataView.getFloat32(0, false)
+    // console.log(data)
+    return data
+  }
+  readF8() {
+    const data: UItem = {
+      offset: this.getOffset(),
+      bytes: 8,
+      value: -1,
+    }
+    const buffer = new ArrayBuffer(8);
+    const dataView = new DataView(buffer)
+    dataView.setUint8(0, this.u1())
+    dataView.setUint8(1, this.u1())
+    dataView.setUint8(2, this.u1())
+    dataView.setUint8(3, this.u1())
+    dataView.setUint8(4, this.u1())
+    dataView.setUint8(5, this.u1())
+    dataView.setUint8(6, this.u1())
+    dataView.setUint8(7, this.u1())
+    data.value = dataView.getFloat64(0, false)
+    return data
   }
   eat(bytes: number) {
     this.offset += bytes

@@ -11,7 +11,7 @@ export interface UItem {
 export interface UItemBigInt {
   offset: number;
   bytes: number;
-  value: bigint;
+  value: string;
   type?: string;
   name?: string;
   desc?: string;

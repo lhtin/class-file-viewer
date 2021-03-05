@@ -67,10 +67,10 @@ export class ConstantPoolParser {
     return this.reader.readU8()
   }
   parseFloat () {
-    return this.reader.readU4()
+    return this.reader.readF4()
   }
   parseDouble () {
-    return this.reader.readU8()
+    return this.reader.readF8()
   }
   resolveConstantPool (constantPool: any) {
     this.constantPool = constantPool

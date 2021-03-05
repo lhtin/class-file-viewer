@@ -23,15 +23,15 @@ const u = Uint8Array.of(
   12, 34, 56, 78,
   /* 3: Float(4) */
   4,
-  1, 1, 1, 1,
+  63, 157, 243, 182,
   /* 4: Long(5) */
   5,
   1, 1, 1, 1,
   1, 1, 1, 1,
   /* 6: Double(6) */
   6,
-  1, 1, 1, 1,
-  1, 1, 1, 1,
+  63, 241, 251, 231, /* high */
+  108, 139, 67, 150, /* low */
   /* 8: Class(7) */
   7, 0, 1,
   /* 9: String(8) */
@@ -105,19 +105,19 @@ describe('ConstantPoolParser', () => {
   it('parseConstant Float', () => {
     expect(constantParser.parseConstant(3)).toMatchObject({
       tag: { value: CONSTANT_TAG.CONSTANT_Float, name: 'Float' },
-      bytes: { value: 16843009, },
+      bytes: { value: 1.2339999675750732, },
     })
   })
   it('parseConstant Long', () => {
     expect(constantParser.parseConstant(4)).toMatchObject({
       tag: { value: CONSTANT_TAG.CONSTANT_Long, name: 'Long' },
-      bytes: { value: 72340172838076673n, },
+      bytes: { value: 72340172838076673n.toString(), },
     })
   })
   it('parseConstant Double', () => {
     expect(constantParser.parseConstant(6)).toMatchObject({
       tag: { value: CONSTANT_TAG.CONSTANT_Double, name: 'Double' },
-      bytes: { value: 72340172838076673n, },
+      bytes: { value: 1.124, },
     })
   })
   it('parseConstant Class', () => {
@@ -224,20 +224,20 @@ describe('ConstantPoolParser', () => {
       {
         index: 3,
         tag: { offset: 20, bytes: 1, value: 4, name: 'Float' },
-        bytes: { offset: 21, bytes: 4, value: 16843009 },
-        name: '16843009'
+        bytes: { offset: 21, bytes: 4, value: 1.2339999675750732 },
+        name: '1.2339999675750732'
       },
       {
         index: 4,
         tag: { offset: 25, bytes: 1, value: 5, name: 'Long' },
-        bytes: { offset: 26, bytes: 8, value: 72340172838076673n },
+        bytes: { offset: 26, bytes: 8, value: 72340172838076673n.toString() },
         name: '72340172838076673'
       },
       {
         index: 6,
         tag: { offset: 34, bytes: 1, value: 6, name: 'Double' },
-        bytes: { offset: 35, bytes: 8, value: 72340172838076673n },
-        name: '72340172838076673'
+        bytes: { offset: 35, bytes: 8, value: 1.124 },
+        name: '1.124'
       },
       {
         index: 8,
