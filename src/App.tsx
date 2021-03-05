@@ -35,11 +35,13 @@ const Panel = ({onParse}: {onParse: (file: File) => void}) => {
   </>
 }
 
-const getCachedData = () => {
+const getDefaultData = () => {
   const cachedData = localStorage.getItem('class-file-data')
   try {
     let u8: Uint8Array
-    if (cachedData) {
+    const url = new URL(window.location.href)
+    const useDefaultClass = url.searchParams.get('useDefaultClass') === 'true'
+    if (!useDefaultClass && cachedData) {
       console.log(`use cached class file data(${localStorage.getItem('class-file-name')}).`)
       u8 = Uint8Array.of(...cachedData.split(',').map((item) => Number(item)));
     } else {
@@ -54,7 +56,7 @@ const getCachedData = () => {
 }
 
 const App = () => {
-  const [data, setData] = useState<any>(getCachedData())
+  const [data, setData] = useState<any>(getDefaultData())
   const onParse = useCallback(async (file) => {
     const u = await getUint8Array(file)
     localStorage.setItem('class-file-data', u.toString())
