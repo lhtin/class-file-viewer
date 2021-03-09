@@ -118,7 +118,7 @@ const ConstantView = ({item, index}: { item: any, index: number }) => {
         <ConstantIndex index={index}/>
         <ConstantName tag={item.tag}/>
         <ConstantAnchorList infoList={[item.string_index]}/>
-        <ConstantDesc desc={item.string_index.name}/>
+        <ConstantDesc desc={item.name}/>
       </Constant>
     case CONSTANT_TAG.CONSTANT_MethodHandle:
       return <Constant index={index}>
@@ -127,14 +127,14 @@ const ConstantView = ({item, index}: { item: any, index: number }) => {
         <ConstantAnchorList infoList={[item.reference_index]}>
           <div>{item.reference_kind.value}&nbsp;</div>
         </ConstantAnchorList>
-        <ConstantDesc desc={item.reference_kind.name + ' ' + item.reference_index.name}/>
+        <ConstantDesc desc={item.name}/>
       </Constant>
     case CONSTANT_TAG.CONSTANT_MethodType:
       return <Constant index={index}>
         <ConstantIndex index={index}/>
         <ConstantName tag={item.tag}/>
         <ConstantAnchorList infoList={[item.descriptor_index]}/>
-        <ConstantDesc desc={item.descriptor_index.name}/>
+        <ConstantDesc desc={item.name}/>
       </Constant>
     case CONSTANT_TAG.CONSTANT_Dynamic:
     case CONSTANT_TAG.CONSTANT_InvokeDynamic:

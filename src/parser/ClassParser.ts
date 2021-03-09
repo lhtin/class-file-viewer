@@ -119,7 +119,7 @@ class ClassParser {
   parseFlags (ACCESS_FLAGS: Record<string, FlagItem>) {
     const flags = this.reader.readU2()
     flags.name = Utils.getAccessFlagsDesc(flags.value, ACCESS_FLAGS).replace(/ACC_/g, '').toLowerCase()
-    console.log(flags)
+    // console.log(flags)
     return flags
   }
 
@@ -200,7 +200,7 @@ class ClassParser {
       name_index: this.parseIndex2(),
       descriptor_index: this.parseIndex2(),
     }
-    console.log(data)
+    // console.log(data)
     const desc =  this.getName(data.descriptor_index.value)
     return {
       name: `${data.access_flags.name} ${Utils.parseDescriptor(desc, this.getName(data.name_index.value))}`,
@@ -219,7 +219,7 @@ class ClassParser {
       fields_count,
       fields: list,
     }
-    console.log('fields', data);
+    // console.log('fields', data);
     return data
   }
   parseMethods () {
@@ -232,7 +232,7 @@ class ClassParser {
       methods_count,
       methods: list,
     }
-    console.log('methods', data)
+    // console.log('methods', data)
     return data
   }
 
@@ -246,7 +246,7 @@ class ClassParser {
       interfaces_count,
       interfaces,
     }
-    console.log('interfaces', data)
+    // console.log('interfaces', data)
     return data
   }
 
@@ -408,7 +408,7 @@ class ClassParser {
     } else {
       data.name = constant.name
     }
-    console.log('index2', data)
+    // console.log('index2', data)
     return data
   }
 
